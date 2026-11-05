@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thumbnail</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <button type="button" class="brand" id="brand" title="Home">
+      <img src="logo.svg" class="logo" alt="">
+      <span>Thumbnail</span>
+    </button>
+    <form class="search" id="searchForm">
+      <input id="search" type="search" placeholder="Search" autocomplete="off">
+      <button type="submit" title="Search" aria-label="Search">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      </button>
+    </form>
+    <div class="top-right">
+      <span class="count" id="count"></span>
+      <button type="button" class="round-btn" id="themeBtn" title="Theme" aria-label="Theme" aria-haspopup="true"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg></button>
+      <button type="button" class="round-btn" id="fullscreenBtn" title="Full screen (F11)" aria-label="Full screen"></button>
+    </div>
+  </header>
+
+  <nav class="menu" id="menu">
+    <button data-action="createCollection" class="list-only"><svg viewBox="0 0 24 24"><path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z"/></svg>Create collection</button>
+    <button data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>Add video</button>
+    <button data-action="addFolder"><svg viewBox="0 0 24 24"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2zm3 12h-2v-2H9v-2h2v-2h2v2h2v2h-2v2z"/></svg>Add folder</button>
+    <span class="sep"></span>
+    <button type="button" class="dd-toggle" id="channelToggle" aria-haspopup="true" aria-expanded="false"></button>
+    <button data-action="selectMode" title="Select several videos (or Ctrl + click a video)"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V5h14v14zm-8.5-2.5-4-4 1.41-1.41 2.59 2.58 5.59-5.58L17.5 9.5l-7 7z"/></svg>Select</button>
+    <span class="sep"></span>
+    <button data-action="play" data-needs="selection"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Play</button>
+    <button data-action="cover" data-needs="selection"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM5 19l3.5-4.5 2.5 3 3.5-4.5L19 19H5z"/></svg>Add cover</button>
+    <button data-action="removeCover" data-needs="cover"><svg viewBox="0 0 24 24"><path d="M21 5v11.17L7.83 3H19a2 2 0 0 1 2 2zM2.81 2.81 1.39 4.22 3 5.83V19a2 2 0 0 0 2 2h13.17l1.61 1.61 1.41-1.41L2.81 2.81zM5 18l3.5-4.5 2.5 3 .59-.75L15.17 18H5z"/></svg>Remove cover</button>
+    <button data-action="rename" data-needs="selection"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>Rename</button>
+    <button data-action="reveal" data-needs="selection"><svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16v10z"/></svg>Show in folder</button>
+    <button data-action="delete" data-needs="selection" class="danger"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>Delete entry</button>
+
+    <!-- replaces the buttons above while selecting several videos -->
+    <div class="selectbar">
+      <button data-action="exitSelect" class="icon-btn" title="Done (Esc)" aria-label="Exit selection"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+      <span class="sel-count" id="selCount">0 selected</span>
+      <button data-action="selectAll" title="Ctrl + A">Select all</button>
+      <button data-action="selectNone" data-needs="picked">Clear</button>
+      <span class="sep"></span>
+      <button data-action="bulkWatched" data-needs="picked"><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg><span>Mark as watched</span></button>
+      <button data-action="bulkCollect" data-needs="picked"><svg viewBox="0 0 24 24"><path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z"/></svg>Add to collection</button>
+      <button data-action="bulkUncollect" data-needs="picked" class="in-collection"><svg viewBox="0 0 24 24"><path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zM3 16h7v-2H3v2zm11.41 6L17 19.41 19.59 22 21 20.59 18.41 18 21 15.41 19.59 14 17 16.59 14.41 14 13 15.41 15.59 18 13 20.59z"/></svg>Remove from collection</button>
+      <button data-action="bulkChannel" data-needs="picked"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>Edit channel</button>
+      <button data-action="bulkRemoveCover" data-needs="picked"><svg viewBox="0 0 24 24"><path d="M21 5v11.17L7.83 3H19a2 2 0 0 1 2 2zM2.81 2.81 1.39 4.22 3 5.83V19a2 2 0 0 0 2 2h13.17l1.61 1.61 1.41-1.41L2.81 2.81zM5 18l3.5-4.5 2.5 3 .59-.75L15.17 18H5z"/></svg>Remove covers</button>
+      <button data-action="bulkDelete" data-needs="picked" class="danger"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>Delete entries</button>
+    </div>
+
+    <div class="view-tabs" role="tablist">
+      <button type="button" data-view="home" role="tab"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</button>
+      <button type="button" data-view="collections" role="tab"><svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>Collections</button>
+    </div>
+  </nav>
+
+  <!-- shown when a collection is open -->
+  <section class="col-header" id="colHeader" hidden>
+    <button type="button" class="round-btn" data-col="back" title="Back to collections" aria-label="Back to collections"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+    <div class="col-header-text">
+      <h1 id="colTitle"></h1>
+      <div class="col-meta" id="colMeta"></div>
+    </div>
+    <div class="col-header-actions">
+      <button type="button" class="pill play-all" data-col="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Play all</button>
+      <button type="button" class="pill" data-col="cover">Add cover</button>
+      <button type="button" class="pill" data-col="removeCover">Remove cover</button>
+      <button type="button" class="pill" data-col="rename">Rename</button>
+      <button type="button" class="pill danger" data-col="delete">Delete collection</button>
+    </div>
+  </section>
+
+  <div class="chips" id="chips">
+    <button class="chip active" data-sort="added">Recently added</button>
+    <button class="chip" data-sort="played">Recently played</button>
+    <button class="chip" data-sort="title">Title A–Z</button>
+    <button class="chip" data-sort="channel">Channel</button>
+    <!-- sorting for the Collections page -->
+    <button class="chip active" data-colsort="updated">Recently updated</button>
+    <button class="chip" data-colsort="created">Recently added</button>
+    <button class="chip" data-colsort="played">Recently played</button>
+    <button class="chip" data-colsort="name">Title A–Z</button>
+    <button class="chip" data-colsort="size">Most videos</button>
+    <button class="chip chip-missing" id="missingChip" hidden title="Show only videos whose file was moved or deleted"></button>
+    <label class="size-control" title="Thumbnail size (or Ctrl + mouse wheel)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h4v4H3zm7 0h4v4h-4zm7 0h4v4h-4zM3 10h4v4H3zm7 0h4v4h-4zm7 0h4v4h-4zM3 17h4v4H3zm7 0h4v4h-4zm7 0h4v4h-4z"/></svg>
+      <input type="range" id="sizeSlider" min="160" max="640" step="10" value="300" aria-label="Thumbnail size">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z"/></svg>
+    </label>
+  </div>
+
+  <main class="grid" id="grid"></main>
+  <main class="grid col-grid" id="colGrid" hidden></main>
+
+  <div class="dd-menu" id="channelMenu" hidden></div>
+  <div class="dd-menu" id="themeMenu" hidden></div>
+
+  <div class="ctx" id="colCtx" hidden>
+    <button data-col="play">Play all</button>
+    <button data-col="cover">Add cover</button>
+    <button data-col="removeCover">Remove cover</button>
+    <button data-col="rename">Rename</button>
+    <hr>
+    <button data-col="delete" class="danger">Delete collection</button>
+  </div>
+
+  <div class="ctx" id="ctx" hidden>
+    <button data-action="play">Play</button>
+    <button data-action="toggleWatched">Mark as watched</button>
+    <button data-action="cover">Add cover</button>
+    <button data-action="removeCover" data-needs="cover">Remove cover</button>
+    <button data-action="channel">Edit channel</button>
+    <button data-action="rename">Rename</button>
+    <button data-action="reveal">Show in folder</button>
+    <button data-action="locate">Locate file…</button>
+    <hr>
+    <button data-action="collect">Save to collection…</button>
+    <button data-action="uncollect" class="in-collection">Remove from collection</button>
+    <hr>
+    <button data-action="delete" class="danger">Delete entry</button>
+  </div>
+
+  <div class="modal-backdrop" id="modal" hidden>
+    <form class="modal" id="modalForm">
+      <h2 id="modalTitle"></h2>
+      <p id="modalText"></p>
+      <input id="modalInput" autocomplete="off">
+      <div class="modal-actions">
+        <button type="button" id="modalCancel">Cancel</button>
+        <button type="submit" id="modalOk" class="primary">OK</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal-backdrop" id="channelModal" hidden>
+    <form class="modal" id="channelForm">
+      <h2 id="chTitle">Edit channel</h2>
+      <div class="channel-edit">
+        <div class="avatar big" id="chAvatar" title="Drop an image here"></div>
+        <div class="channel-photo-btns">
+          <button type="button" class="pill" id="chPhoto">Choose photo</button>
+          <button type="button" class="pill" id="chPhotoRemove">Remove photo</button>
+        </div>
+      </div>
+      <label class="field-label" for="chName">Channel name</label>
+      <input id="chName" list="channelList" autocomplete="off" placeholder="e.g. Corridor Crew">
+      <datalist id="channelList"></datalist>
+      <label class="check" id="chAllRow"><input type="checkbox" id="chAll"><span id="chAllText"></span></label>
+      <p class="hint">The photo is shared by every video from this channel. Pick an existing name to join that channel.</p>
+      <div class="modal-actions">
+        <button type="button" id="chCancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- "Save to collection": tick the collections a video belongs to -->
+  <div class="modal-backdrop" id="saveModal" hidden>
+    <form class="modal save-modal" id="saveForm">
+      <h2 id="saveTitle">Save to collection</h2>
+      <div class="save-list" id="saveList"></div>
+      <div class="save-new">
+        <input id="saveNewName" autocomplete="off" placeholder="New collection name">
+        <button type="submit" class="pill">Create</button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="primary" id="saveDone">Done</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+  <input type="file" id="coverInput" accept="image/*" hidden>
+  <input type="file" id="avatarInput" accept="image/*" hidden>
+  <input type="file" id="colCoverInput" accept="image/*" hidden>
+
+  <script src="app.js"></script>
+</body>
+</html>
