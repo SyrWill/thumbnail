@@ -28,6 +28,12 @@
 - Videos play in your default player; nothing is uploaded anywhere
 - Portable: one folder, no installer, no account, no internet needed
 
+## Screenshot
+
+<p align="center">
+  <img src="docs/screenshot.png" alt="Thumbnail home screen with the search bar, action menu and thumbnail grid" width="100%">
+</p>
+
 ## How it works
 
 A small local server written with the **Python standard library only** (no pip packages) serves the page on `127.0.0.1` and opens it in a Microsoft Edge app-mode window. Your library lives in a `data\` folder next to the app.
