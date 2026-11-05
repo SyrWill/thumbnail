@@ -1,8 +1,23 @@
-# Thumbnail
+<p align="center">
+  <img src="brand/thumbnail-logo.svg" alt="Thumbnail logo" width="128" height="128">
+</p>
 
-A light, portable Windows app that turns the videos on your drives into a clean **thumbnail grid** — like a home page for your own video library.
+<h1 align="center">Thumbnail</h1>
 
-Add a folder or a single video, and Thumbnail shows it as a card. Click a card and the video opens in your default player.
+<p align="center">
+  <b>Your own video library, as a clean thumbnail grid.</b><br>
+  A light, portable Windows app that turns the videos on your drives into a home page you can browse.<br>
+  Add a folder or a single video, and it shows up as a card. Click a card and it opens in your default player.
+</p>
+
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/Python-standard%20library%20only-3776AB?logo=python&logoColor=white">
+  <img alt="Platform" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-0078D4?logo=windows&logoColor=white">
+  <img alt="Portable" src="https://img.shields.io/badge/portable-no%20installer-e8352b">
+  <img alt="License" src="https://img.shields.io/badge/license-all%20rights%20reserved-555555">
+</p>
+
+---
 
 ## Features
 
