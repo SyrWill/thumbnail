@@ -931,6 +931,34 @@ def center_window(hwnd):
     return True
 
 
+def set_window_icon(hwnd, cache={}):
+    """Gives the window our own sharp icon.
+
+    The browser rasterises the page's favicon at 16/32 px, which the taskbar then stretches
+    (blurry on big or scaled screens), so we hand the window the full-size icon ourselves.
+    """
+    icon_file = APP_DIR / "icon.ico"
+    if sys.platform != "win32" or not icon_file.is_file():
+        return
+    ctypes, wintypes, user32 = _user32()
+    try:
+        dpi = user32.GetDpiForWindow(hwnd) or 96
+    except (AttributeError, OSError):
+        dpi = 96
+    sizes = {1: 256, 0: max(16, round(16 * dpi / 96))}   # WM_SETICON: ICON_BIG, ICON_SMALL
+    user32.LoadImageW.restype = ctypes.c_void_p
+    user32.LoadImageW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_uint,
+                                  ctypes.c_int, ctypes.c_int, ctypes.c_uint]
+    user32.SendMessageW.restype = ctypes.c_void_p
+    user32.SendMessageW.argtypes = [wintypes.HWND, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p]
+    for kind, size in sizes.items():
+        if (kind, size) not in cache:
+            # IMAGE_ICON, LR_LOADFROMFILE: picks the closest size from the .ico, scaling if needed
+            cache[(kind, size)] = user32.LoadImageW(None, str(icon_file), 1, size, size, 0x10)
+        if cache[(kind, size)]:
+            user32.SendMessageW(hwnd, 0x80, kind, cache[(kind, size)])  # WM_SETICON
+
+
 def place_new_window(before, timeout=20, **find):
     """Waits for the window the browser just opened, then centres it."""
     if sys.platform != "win32":
@@ -942,6 +970,12 @@ def place_new_window(before, timeout=20, **find):
             time.sleep(0.4)  # let the browser finish restoring its saved size first
             for hwnd in new:
                 center_window(hwnd)
+            # The browser sets its own blurry icon once the favicon has loaded: replace it
+            # now and again a few times so ours is the one that stays.
+            for _ in range(8):
+                for hwnd in new:
+                    set_window_icon(hwnd)
+                time.sleep(1)
             return
         time.sleep(0.2)
 
