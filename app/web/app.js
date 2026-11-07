@@ -32,8 +32,6 @@ const ICONS = {
   channels: '<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>',
   list: '<svg viewBox="0 0 24 24"><path d="M19 9H2v2h17V9zm0-4H2v2h17V5zM2 15h13v-2H2v2zm15-2v6l5-3-5-3z"/></svg>',
   collection: '<svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>',
-  fullscreen: '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
-  exitFullscreen: '<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>',
   chevron: '<svg class="chev" viewBox="0 0 24 24"><path d="m12 15.7-6-6 1.4-1.4 4.6 4.6 4.6-4.6L18 9.7z"/></svg>',
 };
 
@@ -165,10 +163,60 @@ const elementFrom = (html) => {
 const cardCache = new Map(); // id -> { html, el }
 let addCardEl = null;
 
+// ---- motion: small, quick animations so the grid doesn't just jump
+
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const EASE_OUT = "cubic-bezier(.2, .7, .2, 1)";
+let quietCards = false; // while switching views the whole page fades in instead
+const cardKey = (el) => el.dataset.id || el.dataset.cid || el.dataset.action || el.dataset.col || null;
+
 // Puts nodes into a container, leaving the DOM alone when nothing moved.
+// Cards that stay slide from where they were to their new place (sorting, filtering,
+// deleting); new cards fade and rise in, one after another. Only cards on screen move,
+// so a big library stays quick.
 function placeNodes(container, nodes) {
-  const current = container.children;
-  if (current.length !== nodes.length || nodes.some((n, i) => current[i] !== n)) container.replaceChildren(...nodes);
+  const current = [...container.children];
+  if (current.length === nodes.length && nodes.every((n, i) => current[i] === n)) return;
+  const animate = !reduceMotion.matches && !quietCards && !container.hidden && container.isConnected;
+  const before = new Map();
+  if (animate) {
+    for (const el of current) {
+      const key = cardKey(el);
+      if (key) before.set(key, el.getBoundingClientRect()); // where it is now, mid-animation included
+    }
+    // A slide still running starts over from where the card is; fade-ins keep going.
+    for (const el of current) el.getAnimations().forEach((a) => a.id === "slide" && a.cancel());
+  }
+  container.replaceChildren(...nodes);
+  if (!animate) return;
+  const top = -120, bottom = innerHeight + 120;
+  let entering = 0;
+  for (const el of nodes) {
+    const key = cardKey(el);
+    if (!key) continue;
+    const to = el.getBoundingClientRect();
+    const from = before.get(key);
+    if (from) {
+      const dx = from.left - to.left, dy = from.top - to.top;
+      const onScreen = (to.bottom > top && to.top < bottom) || (from.bottom > top && from.top < bottom);
+      if (onScreen && (Math.abs(dx) > 1 || Math.abs(dy) > 1)) {
+        el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
+          { id: "slide", duration: 280, easing: EASE_OUT });
+      }
+    } else if (to.bottom > top && to.top < bottom) {
+      el.animate([{ opacity: 0, transform: "translateY(14px) scale(.97)" }, { opacity: 1, transform: "none" }],
+        { duration: 260, delay: Math.min(entering++ * 35, 280), easing: EASE_OUT, fill: "backwards" });
+    }
+  }
+}
+
+// The page under the bars fades and rises in (switching Home / Collections / a collection).
+function enterView() {
+  if (reduceMotion.matches) return;
+  const shown = [$("#colHeader"), $("#chips"), state.view === "collections" ? colGrid : grid].filter((el) => !el.hidden);
+  shown.forEach((el, i) => el.animate(
+    [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }],
+    { duration: 240, delay: i * 30, easing: EASE_OUT, fill: "backwards" }));
 }
 
 function render() {
@@ -324,8 +372,10 @@ function go(view, collectionId = null) {
   });
   $("#search").value = "";
   hidePopups();
-  render();
+  quietCards = true;
+  try { render(); } finally { quietCards = false; }
   scrollTo({ top: 0 });
+  enterView();
 }
 
 const colActions = {
@@ -1106,13 +1156,26 @@ function setTheme(id, save = true) {
   if (save) saveSetting("theme", id);
 }
 
+// Each theme's swatch is the app's logo in that theme's colours: its page colour behind,
+// one tile filled with the accent and three tiles in the accent and surface colours.
+function swatchSvg([page, surface, accent]) {
+  return `<svg class="swatch" viewBox="0 0 64 64" aria-hidden="true">
+    <rect x="1" y="1" width="62" height="62" rx="14" fill="${page}" stroke="#8886" stroke-width="2"/>
+    <rect x="10" y="16" width="20" height="14" rx="3.5" fill="${accent}"/>
+    <g fill="${surface}" stroke="${accent}" stroke-width="3.5">
+      <rect x="35.75" y="17.75" width="16.5" height="10.5" rx="2"/>
+      <rect x="11.75" y="35.75" width="16.5" height="10.5" rx="2"/>
+      <rect x="35.75" y="35.75" width="16.5" height="10.5" rx="2"/>
+    </g>
+  </svg>`;
+}
+
 function openThemeMenu() {
   let html = "<h4>Theme</h4>", group = null;
   for (const t of THEMES) {
     if (t.group !== group) html += `<h5>${esc(group = t.group)}</h5>`;
-    const [a, b, c] = t.swatch;
     html += `<button class="dd-item ${t.id === currentTheme() ? "active" : ""}" data-theme-id="${t.id}">
-      <span class="swatch" style="background: conic-gradient(${c} 0 25%, ${b} 25% 50%, ${a} 50%)"></span>
+      ${swatchSvg(t.swatch)}
       <span class="dd-name">${esc(t.name)}</span>${t.id === currentTheme() ? ICONS.check.replace("<svg", '<svg class="dd-check"') : ""}
     </button>`;
   }
@@ -1132,25 +1195,6 @@ themeMenu.addEventListener("click", (e) => {
   openThemeMenu(); // stays open so you can flip through themes
 });
 setTheme(currentTheme(), false); // the server already painted the saved theme
-
-// Full screen: the button, or F11 (which the page can see but not undo).
-const fsBtn = $("#fullscreenBtn");
-const isFullscreen = () => !!document.fullscreenElement || matchMedia("(display-mode: fullscreen)").matches;
-function renderFullscreen() {
-  const on = isFullscreen();
-  fsBtn.innerHTML = on ? ICONS.exitFullscreen : ICONS.fullscreen;
-  fsBtn.title = on ? "Exit full screen" : "Full screen (F11)";
-}
-fsBtn.addEventListener("click", async () => {
-  try {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else if (isFullscreen()) toast("Press F11 to leave full screen");
-    else await document.documentElement.requestFullscreen();
-  } catch { toast("Full screen isn't available here — try F11"); }
-});
-document.addEventListener("fullscreenchange", renderFullscreen);
-addEventListener("resize", renderFullscreen);
-renderFullscreen();
 
 ctx.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-action]");
@@ -1282,6 +1326,63 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Delete") run("delete");
   if (e.key === "F2") { e.preventDefault(); run("rename"); }
 });
+
+// Own title bar: the desktop app (Thumbnail.exe) has no Windows title bar, so the top bar
+// takes its place, like Spotify or Discord. In a browser window none of this shows.
+if (typeof window.ipc?.postMessage === "function") {
+  const send = (m) => window.ipc.postMessage(m);
+  const line = (d) => `<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">${d}</svg>`;
+  const WIN = {
+    minimize: line('<path d="M0 5.5h10"/>'),
+    maximize: line('<rect x=".5" y=".5" width="9" height="9"/>'),
+    restore: line('<rect x=".5" y="2.5" width="7" height="7"/><path d="M2.5 2.5V.5h7v7h-2"/>'),
+    close: line('<path d="M.5.5l9 9M9.5.5l-9 9"/>'),
+  };
+  document.documentElement.classList.add("native-frame");
+  const topbar = $(".topbar");
+  // Only the content scrolls (below the top bar and menu), so the scrollbar starts under
+  // them and the window buttons sit right in the corner.
+  const scroller = document.createElement("div");
+  scroller.className = "scroller";
+  $("#menu").after(scroller);
+  scroller.append(...["#colHeader", "#chips", "#grid", "#colGrid"].map((s) => $(s)));
+  window.scrollTo = (...args) => scroller.scrollTo(...args);
+  const controls = document.createElement("div");
+  controls.className = "window-controls";
+  controls.innerHTML = `
+    <button type="button" data-win="minimize" title="Minimize" aria-label="Minimize">${WIN.minimize}</button>
+    <button type="button" data-win="maximize" title="Maximize" aria-label="Maximize">${WIN.maximize}</button>
+    <button type="button" data-win="close" class="win-close" title="Close" aria-label="Close">${WIN.close}</button>`;
+  topbar.append(controls);
+  const maxBtn = controls.querySelector('[data-win="maximize"]');
+  controls.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-win]");
+    if (b) send("window:" + b.dataset.win);
+  });
+  // The app tells us when the window is maximized (by us, Win+Up, snapping...).
+  window.__setMaximized = (on) => {
+    document.documentElement.classList.toggle("maximized", on);
+    maxBtn.innerHTML = on ? WIN.restore : WIN.maximize;
+    maxBtn.title = on ? "Restore" : "Maximize";
+    maxBtn.setAttribute("aria-label", maxBtn.title);
+  };
+  // Empty parts of the top bar move the window; a double-click maximizes it.
+  topbar.addEventListener("mousedown", (e) => {
+    if (e.button !== 0 || e.target.closest("button, input, a, form, .window-controls")) return;
+    e.preventDefault();
+    send(e.detail === 2 ? "window:maximize" : "window:drag");
+  });
+  // The page covers the window's top border, so the top edge and corners resize from here.
+  for (const edge of ["n", "nw", "ne"]) {
+    const grip = document.createElement("div");
+    grip.className = `resize-grip resize-${edge}`;
+    grip.addEventListener("mousedown", (e) => {
+      if (e.button === 0) { e.preventDefault(); send("window:resize-" + edge); }
+    });
+    document.body.append(grip);
+  }
+  send("window:ready");
+}
 
 // Heartbeat: the server shuts itself down once the window is closed.
 // When the app is updated the server restarts itself and its version changes;

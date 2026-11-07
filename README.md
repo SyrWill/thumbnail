@@ -11,9 +11,9 @@
 </p>
 
 <p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-standard%20library%20only-3776AB?logo=python&logoColor=white">
+  <img alt="Rust" src="https://img.shields.io/badge/Rust-2024-000000?logo=rust&logoColor=white">
   <img alt="Platform" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-0078D4?logo=windows&logoColor=white">
-  <img alt="Portable" src="https://img.shields.io/badge/portable-no%20installer-e8352b">
+  <img alt="Portable" src="https://img.shields.io/badge/portable-one%20exe-e8352b">
   <img alt="License" src="https://img.shields.io/badge/license-all%20rights%20reserved-555555">
 </p>
 
@@ -21,12 +21,13 @@
 
 ## Features
 
-- Thumbnail grid with an adjustable size
+- Thumbnail grid with an adjustable size and smooth animations
 - Channels, collections and multi-select to organize videos
 - Several color themes, including a retro one
 - Search across the whole library
+- Its own window with a custom title bar, like Discord or Spotify
 - Videos play in your default player; nothing is uploaded anywhere
-- Portable: one folder, no installer, no account, no internet needed
+- Portable: a single 1.6 MB exe, no installer, no account, no internet needed
 
 ## Screenshot
 
@@ -36,41 +37,37 @@
 
 ## How it works
 
-A small local server written with the **Python standard library only** (no pip packages) serves the page on `127.0.0.1` and opens it in a Microsoft Edge app-mode window. Your library lives in a `data\` folder next to the app.
+`Thumbnail.exe` is written in **Rust**. It opens a frameless native window ([tao](https://github.com/tauri-apps/tao)) and draws the interface with the Microsoft Edge WebView2 that ships with Windows ([wry](https://github.com/tauri-apps/wry)). A small local server inside the exe ([tiny_http](https://github.com/tiny-http/tiny-http)) serves the page and the library API on `127.0.0.1`. The page itself (HTML, CSS, JS and fonts) is built into the exe, so there is nothing else to ship.
+
+Your library lives in a `data\` folder next to the exe. Videos on another drive are stored with absolute paths and found again when a drive letter changes.
 
 ```
-Thumbnail.exe     tiny C# launcher: starts runtime\pythonw.exe app\app.py
-app\              app.py (server) and web\ (HTML, CSS, JS, fonts)
-runtime\          a minimal Python (not in this repo)
-data\             your library, covers, collections, settings (not in this repo)
-launcher\         source and icon of Thumbnail.exe
-brand\            logo
+src\              the app: window, local server, library, file dialogs
+  main.rs         window, title bar and startup (one copy at a time)
+  server.rs       local API and media streaming
+  library.rs      library, channels, collections, settings (JSON in data\)
+  paths.rs        portable paths between drives
+  dialogs.rs      native Add / Locate dialogs
+  platform.rs     open in player, show in folder, play all
+  web.rs          embeds app\web into the exe
+app\web\          the interface (HTML, CSS, JS, fonts)
+brand\            logo and app icon
+data\             your library, covers, collections, settings (created on first run, not in this repo)
 ```
 
-## Run it from source
+## Build it
 
-You need Windows 10/11 (for Microsoft Edge) and any Python 3.
+You need Windows 10/11, [Rust](https://rustup.rs) with the MSVC toolchain, and the *Visual Studio Build Tools* (C++ workload).
 
 ```bash
-python app/app.py
+cargo build --release
 ```
 
-Use `python app/app.py --no-window` to start only the server.
-
-## Build the portable folder
-
-1. Take the Windows *embeddable package* from python.org and put it in a `runtime\` folder.
-2. Compile the launcher with the .NET Framework compiler that ships with Windows:
-
-   ```bash
-   C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /target:winexe /win32icon:launcher\icon.ico /out:Thumbnail.exe launcher\Launcher.cs
-   ```
-
-3. Keep `Thumbnail.exe`, `app\`, `runtime\` and `THIRD-PARTY-NOTICES.txt` together. The `data\` folder is created on first run.
+The exe is `target\release\Thumbnail.exe`. Put it in any folder, next to `THIRD-PARTY-NOTICES.txt`; the `data\` folder is created on first run. During development, `cargo run` starts it straight away.
 
 ## Third-party software
 
-Fonts and the Python runtime have their own licenses. See [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
+The WebView2 loader, the Rust libraries and the fonts have their own licenses. See [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
 
 ## License
 

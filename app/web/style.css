@@ -85,6 +85,14 @@ svg { fill: currentColor; }
 }
 .round-btn:hover { background: var(--surface-2); }
 .round-btn svg { width: 24px; height: 24px; }
+/* Icon + label button in the top bar (Theme). */
+.pill-btn {
+  flex: none; display: inline-flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 14px 0 10px; border: 0; border-radius: var(--radius-pill);
+  background: transparent; font-weight: 500; white-space: nowrap;
+}
+.pill-btn:hover { background: var(--surface-2); }
+.pill-btn svg { width: 22px; height: 22px; }
 .brand { display: flex; white-space: nowrap; align-items: center; gap: 6px; font-size: 19px; font-weight: 600; letter-spacing: -0.5px; font-family: var(--font-title); }
 .logo { width: 30px; height: 30px; }
 .search { display: flex; height: 40px; }
@@ -101,6 +109,51 @@ svg { fill: currentColor; }
 }
 .search button svg { width: 22px; height: 22px; }
 .count { color: var(--text-2); white-space: nowrap; }
+
+/* ---------- own title bar (desktop app only: html.native-frame) ---------- */
+
+/* The bars stay put and only the content below them scrolls, with a slim scrollbar. */
+html.native-frame, .native-frame body { height: 100%; overflow: hidden; }
+.native-frame body { display: flex; flex-direction: column; }
+.native-frame .topbar, .native-frame .menu { position: relative; top: auto; flex: none; }
+.native-frame .scroller { flex: 1; min-height: 0; overflow-y: auto; }
+.native-frame .scroller::-webkit-scrollbar { width: 12px; }
+.native-frame .scroller::-webkit-scrollbar-track { background: transparent; }
+.native-frame .scroller::-webkit-scrollbar-thumb {
+  border: 3px solid transparent; border-radius: 6px; background-clip: padding-box;
+  background-color: color-mix(in srgb, var(--text) 22%, transparent);
+}
+.native-frame .scroller::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--text) 40%, transparent); }
+
+/* Minimize / maximize / close at the window's top-right corner, Windows-style. */
+.window-controls { display: none; }
+.native-frame .window-controls {
+  position: absolute; top: 0; right: 0; height: 100%;
+  display: flex;
+}
+.native-frame .window-controls button {
+  display: grid; place-items: center; width: 46px; height: 100%;
+  border: 0; border-radius: 0; background: transparent; color: var(--text);
+}
+.native-frame .window-controls button:hover { background: var(--surface-2); }
+.native-frame .window-controls button:active { background: var(--border); }
+.native-frame .window-controls .win-close:hover { background: #c42b1c; color: #fff; }
+.native-frame .window-controls .win-close:active { background: #b22a1b; color: #fff; }
+.native-frame .window-controls svg { width: 10px; height: 10px; fill: none; stroke: currentColor; }
+/* Keep the search and buttons clear of them on narrow windows. */
+.native-frame .topbar { padding-right: max(var(--gutter), 150px); }
+.native-frame .brand { -webkit-user-select: none; user-select: none; }
+.native-frame .topbar { -webkit-user-select: none; user-select: none; }
+
+/* Thin grips along the top edge to resize the window (the other edges are the window's own). */
+.resize-grip { display: none; }
+.native-frame .resize-grip { display: block; position: fixed; top: 0; z-index: 100; height: 5px; }
+.native-frame .resize-n { left: 8px; right: 8px; cursor: ns-resize; }
+.native-frame .resize-nw { left: 0; width: 8px; cursor: nwse-resize; }
+.native-frame .resize-ne { right: 0; width: 8px; cursor: nesw-resize; }
+.native-frame.maximized .resize-grip, .native-frame:fullscreen .resize-grip,
+.native-frame:fullscreen .window-controls { display: none; }
+.native-frame:fullscreen .topbar { padding-right: var(--gutter); }
 
 /* ---------- menu ---------- */
 
@@ -235,11 +288,8 @@ body:not([data-view="collection"]) .in-collection { display: none !important; }
 .dd-menu hr { border: 0; border-top: 1px solid var(--hover); margin: 8px 0; }
 .dd-empty { margin: 4px 16px 8px; color: var(--text-2); font-size: 13px; }
 
-/* theme swatch: page colour, surface and accent of each theme */
-.swatch {
-  flex: none; width: 26px; height: 26px; border-radius: 50%;
-  border: 1px solid #8884; box-shadow: inset 0 0 0 2px #0001;
-}
+/* theme swatch: the logo in each theme's page, surface and accent colours */
+.swatch { flex: none; width: 28px; height: 28px; }
 
 /* ---------- chips ---------- */
 
@@ -428,7 +478,8 @@ body:not([data-view="collection"]) .in-collection { display: none !important; }
 
 @media (max-width: 700px) {
   .topbar { grid-template-columns: auto 1fr auto; padding: 0 16px; }
-  .brand span, .count { display: none; }
+  .brand span, .count, .pill-btn span { display: none; }
+  .pill-btn { padding: 0 8px; }
   .menu, .chips { padding-left: 16px; padding-right: 16px; }
   .menu { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .menu button { flex: none; padding: 0 10px; }
@@ -730,3 +781,26 @@ body:not([data-view="collection"]) .in-collection { display: none !important; }
 [data-theme^="stymu"] .search input { border: 2px solid var(--rule); border-right: 0; border-radius: 0; }
 [data-theme^="stymu"] .search button { border: 2px solid var(--rule); border-radius: 0; background: var(--text); color: var(--on-inverse); }
 [data-theme^="stymu"] .toast { border-radius: 0; box-shadow: var(--sleeve-shadow); }
+
+/* ---------- motion: quick and subtle, so the app feels responsive ---------- */
+
+/* Colours ease instead of snapping (hover, active tab, active chip, selected card). */
+.menu button, .chip, .round-btn, .pill-btn, .brand, .search button, .dd-item, .ctx button,
+.native-frame .window-controls button {
+  transition: background-color .15s ease, color .15s ease, opacity .15s ease;
+}
+
+/* Menus drop down from where they open (Channels, theme, right-click menus). */
+@keyframes drop-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
+.dd-menu:not([hidden]) { animation: drop-in .16s cubic-bezier(.2, .7, .2, 1); transform-origin: top center; }
+.ctx:not([hidden]) { animation: drop-in .13s cubic-bezier(.2, .7, .2, 1); transform-origin: top left; }
+
+/* Dialogs: the backdrop fades, the box rises in. */
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+.modal-backdrop:not([hidden]) { animation: fade-in .16s ease-out; }
+.modal-backdrop:not([hidden]) > .modal { animation: rise-in .2s cubic-bezier(.2, .7, .2, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
+}

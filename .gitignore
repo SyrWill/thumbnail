@@ -1,14 +1,13 @@
 # Personal data - never commit
 data/
 
-# Bundled Python runtime and build output (get them as described in the README)
-runtime/
+# Build output and release packages
+target/
+dist/
 [[]release]/
-Thumbnail.exe
+*.exe
 *.zip
 
-# Python / OS
-__pycache__/
-*.pyc
+# OS
 Thumbs.db
 desktop.ini
