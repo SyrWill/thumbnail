@@ -48,6 +48,7 @@
       <button data-action="selectNone" data-needs="picked">Clear</button>
       <span class="sep"></span>
       <button data-action="bulkWatched" data-needs="picked"><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg><span>Mark as watched</span></button>
+      <button data-action="bulkHidden" data-needs="picked"><svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5c0 .65-.13 1.26-.36 1.83l2.92 2.92A11.8 11.8 0 0 0 23 12c-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.8 11.8 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55A2.8 2.8 0 0 0 9 12a3 3 0 0 0 3 3c.22 0 .44-.03.65-.08l1.55 1.55A5 5 0 0 1 7.53 9.8zm4.31-.78 3.15 3.15.02-.16a3 3 0 0 0-3-3l-.17.01z"/></svg><span>Hide from Home</span></button>
       <button data-action="bulkCollect" data-needs="picked"><svg viewBox="0 0 24 24"><path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z"/></svg>Add to collection</button>
       <button data-action="bulkUncollect" data-needs="picked" class="in-collection"><svg viewBox="0 0 24 24"><path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zM3 16h7v-2H3v2zm11.41 6L17 19.41 19.59 22 21 20.59 18.41 18 21 15.41 19.59 14 17 16.59 14.41 14 13 15.41 15.59 18 13 20.59z"/></svg>Remove from collection</button>
       <button data-action="bulkChannel" data-needs="picked"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>Edit channel</button>
@@ -89,6 +90,7 @@
     <button class="chip" data-colsort="name">Title A–Z</button>
     <button class="chip" data-colsort="size">Most videos</button>
     <button class="chip chip-missing" id="missingChip" hidden title="Show only videos whose file was moved or deleted"></button>
+    <button class="chip chip-hidden" id="hiddenChip" hidden title="Show the videos you hid from Home"></button>
     <label class="size-control" title="Thumbnail size (or Ctrl + mouse wheel)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h4v4H3zm7 0h4v4h-4zm7 0h4v4h-4zM3 10h4v4H3zm7 0h4v4h-4zm7 0h4v4h-4zM3 17h4v4H3zm7 0h4v4h-4zm7 0h4v4h-4z"/></svg>
       <input type="range" id="sizeSlider" min="160" max="640" step="10" value="300" aria-label="Thumbnail size">
@@ -114,6 +116,7 @@
   <div class="ctx" id="ctx" hidden>
     <button data-action="play">Play</button>
     <button data-action="toggleWatched">Mark as watched</button>
+    <button data-action="toggleHidden">Hide from Home</button>
     <button data-action="cover">Add cover</button>
     <button data-action="removeCover" data-needs="cover">Remove cover</button>
     <button data-action="channel">Edit channel</button>
@@ -166,6 +169,10 @@
     <form class="modal save-modal" id="saveForm">
       <h2 id="saveTitle">Save to collection</h2>
       <div class="save-list" id="saveList"></div>
+      <label class="save-row save-hide" title="It stays in its collections; the Hidden chip on Home shows it again">
+        <input type="checkbox" id="saveHide">
+        <span class="save-name">Hide from Home</span>
+      </label>
       <div class="save-new">
         <input id="saveNewName" autocomplete="off" placeholder="New collection name">
         <button type="submit" class="pill">Create</button>

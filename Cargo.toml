@@ -1,7 +1,7 @@
 [package]
 name = "thumbnail"
 description = "A home page of thumbnails for the videos on your drives"
-version = "0.1.0"
+version = "2.1.0"
 edition = "2024"
 
 [dependencies]

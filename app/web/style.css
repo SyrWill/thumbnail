@@ -227,6 +227,7 @@ body:not([data-view="collection"]) .in-collection { display: none !important; }
 .save-row .save-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .save-row .save-count { color: var(--text-2); font-size: 12px; }
 .save-empty { color: var(--text-2); padding: 4px 8px 8px; }
+.save-hide { margin: -4px -8px 12px; padding-top: 13px; border-top: 1px solid var(--border); border-radius: 0; }
 .save-new { display: flex; gap: 8px; margin-bottom: 16px; }
 .modal .save-new input { flex: 1; margin: 0; }
 

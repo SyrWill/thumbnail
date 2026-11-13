@@ -23,6 +23,7 @@
 
 - Thumbnail grid with an adjustable size and smooth animations
 - Channels, collections and multi-select to organize videos
+- Hide videos from Home, for example the ones already sorted into a collection
 - Several color themes, including a retro one
 - Search across the whole library
 - Its own window with a custom title bar, like Discord or Spotify

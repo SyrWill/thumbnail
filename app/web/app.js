@@ -15,6 +15,7 @@ const state = {
   picked: new Set(),
   lastPicked: null, // anchor for Shift + click ranges
   missingOnly: false, // "Missing files" chip
+  hiddenOnly: false, // "Hidden" chip: Home shows the videos hidden from it instead
   view: "home", // "home" | "collections" | "collection" (one open collection)
   collectionId: null,
   colSort: "updated", // sort chips on the Collections page
@@ -57,6 +58,7 @@ function setItems(items) {
   if (state.selected && !items.some((i) => i.id === state.selected)) state.selected = null;
   if (state.channel && !items.some((i) => i.channel === state.channel)) state.channel = null;
   if (state.missingOnly && items.every((i) => i.exists)) state.missingOnly = false;
+  if (state.hiddenOnly && !items.some((i) => i.hidden)) state.hiddenOnly = false;
   render();
   queueAutoThumbs();
 }
@@ -106,6 +108,8 @@ function visibleItems() {
   const order = col ? new Map(col.videos.map((id, n) => [id, n])) : null;
   const list = state.items.filter((i) =>
     (!order || order.has(i.id)) &&
+    // Hidden videos only leave Home's grid: collections and searches still find them.
+    (state.view !== "home" || (state.hiddenOnly ? i.hidden : !i.hidden || q)) &&
     (!state.channel || i.channel === state.channel) &&
     (!state.missingOnly || !i.exists) &&
     (!q || `${i.title} ${i.channel} ${i.path}`.toLowerCase().includes(q)));
@@ -129,7 +133,7 @@ function cardHtml(item) {
   const thumb = item.cover
     ? `<img src="/covers/${encodeURIComponent(item.cover)}" alt="" draggable="false" loading="lazy" decoding="async">`
     : `<div class="placeholder ${item.exists && !item.autoTried ? "loading" : ""}">${ICONS.film}<span>${esc(item.ext)}</span></div>`;
-  const meta = [fmtSize(item.size), `added ${timeAgo(item.added)}`].filter(Boolean).join(" • ");
+  const meta = [fmtSize(item.size), `added ${timeAgo(item.added)}`, item.hidden && "hidden from Home"].filter(Boolean).join(" • ");
   return `
     <article class="card ${item.exists ? "" : "is-missing"} ${item.watched ? "is-watched" : ""}" data-id="${item.id}" title="${esc(item.path)}">
       <div class="thumb">
@@ -231,6 +235,7 @@ function render() {
   if (state.view === "collections") {
     renderCollections();
     $("#missingChip").hidden = true;
+    $("#hiddenChip").hidden = true;
     return updateMenu();
   }
 
@@ -251,7 +256,9 @@ function render() {
   const visible = new Set(items.map((i) => i.id));
   for (const id of state.picked) if (!visible.has(id)) state.picked.delete(id);
 
-  const filtered = state.query || state.channel || state.selecting || state.missingOnly;
+  const filtered = state.query || state.channel || state.selecting || state.missingOnly || state.hiddenOnly;
+  const onHome = state.view === "home";
+  const hiddenCount = state.items.filter((i) => i.hidden).length;
   addCardEl ||= elementFrom(`
     <article class="card add-card" data-action="add">
       <div class="thumb"><div class="plus">${ICONS.plus}</div><span>Add video</span></div>
@@ -266,13 +273,21 @@ function render() {
     nodes.push(elementFrom(`<p class="empty">This collection is empty. On <b>Home</b>, use ⋮ → <b>Save to collection</b>, or <b>Select</b> several videos → <b>Add to collection</b>. Videos you add here with <b>+</b> go straight into it.</p>`));
   } else if (!state.items.length) {
     nodes.push(elementFrom(`<p class="empty">Your library is empty. Click <b>+</b> to add your first video.</p>`));
+  } else if (!items.length && onHome && !state.query && !state.channel && !state.missingOnly && !state.hiddenOnly) {
+    nodes.push(elementFrom(`<p class="empty">Every video is hidden from Home. Click <b>Hidden (${hiddenCount})</b> to see them.</p>`));
   } else if (!items.length) {
     nodes.push(elementFrom(`<p class="empty">No videos match “${esc(state.query)}”${state.channel ? ` in ${esc(state.channel)}` : ""}.</p>`));
   }
   placeNodes(grid, nodes);
 
-  const n = inCollection ? currentCollection()?.videos.length ?? 0 : state.items.length;
-  $("#count").textContent = items.length < n ? `${items.length} of ${n} videos` : plural(n, "video");
+  // On Home the total leaves out the hidden videos (or, with the Hidden chip on, counts only them).
+  const n = inCollection ? currentCollection()?.videos.length ?? 0
+    : state.hiddenOnly ? hiddenCount : state.items.length - hiddenCount;
+  $("#count").textContent = items.length < n ? `${items.length} of ${n} videos` : plural(items.length, "video");
+  const hiddenChip = $("#hiddenChip");
+  hiddenChip.hidden = !onHome || !hiddenCount;
+  hiddenChip.classList.toggle("active", state.hiddenOnly);
+  hiddenChip.textContent = `Hidden (${hiddenCount})`;
   const missing = state.items.filter((i) => !i.exists).length;
   const missingChip = $("#missingChip");
   missingChip.hidden = !missing;
@@ -368,7 +383,7 @@ function renderCollectionHeader() {
 function go(view, collectionId = null) {
   Object.assign(state, {
     view, collectionId, selected: null, selecting: false, picked: new Set(),
-    channel: null, missingOnly: false, query: "",
+    channel: null, missingOnly: false, hiddenOnly: false, query: "",
   });
   $("#search").value = "";
   hidePopups();
@@ -437,7 +452,7 @@ async function runCol(name, cid) {
 
 // "Save to collection": tick the collections the videos belong in, or make a new one.
 function saveDialog(items) {
-  const modal = $("#saveModal"), list = $("#saveList"), form = $("#saveForm"), nameInput = $("#saveNewName");
+  const modal = $("#saveModal"), list = $("#saveList"), form = $("#saveForm"), nameInput = $("#saveNewName"), hideBox = $("#saveHide");
   const ids = items.map((i) => i.id);
   $("#saveTitle").textContent = items.length > 1 ? `Save ${items.length} videos to…` : "Save to…";
 
@@ -453,6 +468,10 @@ function saveDialog(items) {
       }).join("")
       : `<p class="save-empty">No collections yet. Create the first one below.</p>`;
     list.querySelectorAll("[data-some]").forEach((b) => { b.indeterminate = true; });
+    // "Hide from Home": once a video is in a collection, Home can leave it out.
+    const hiddenNow = state.items.filter((i) => ids.includes(i.id) && i.hidden).length;
+    hideBox.checked = hiddenNow === ids.length;
+    hideBox.indeterminate = hiddenNow > 0 && hiddenNow < ids.length;
   };
 
   draw();
@@ -463,8 +482,15 @@ function saveDialog(items) {
   return new Promise((resolve) => {
     const close = () => {
       modal.hidden = true;
-      list.onchange = form.onsubmit = modal.onmousedown = modal.onkeydown = $("#saveDone").onclick = null;
+      list.onchange = hideBox.onchange = form.onsubmit = modal.onmousedown = modal.onkeydown = $("#saveDone").onclick = null;
       resolve();
+    };
+    hideBox.onchange = async () => {
+      try {
+        await api("/api/hidden", { ids, hidden: hideBox.checked });
+        toast(hideBox.checked ? "Hidden from Home" : "Shown on Home again");
+      } catch (err) { toast(err.message); }
+      draw();
     };
     list.onchange = async (e) => {
       const box = e.target, col = state.collections.find((c) => c.id === box.dataset.cid);
@@ -557,6 +583,8 @@ function updateMenu() {
   // One button: marks all as watched, or unwatched when they all already are.
   const allWatched = n > 0 && pickedItems().every((i) => i.watched);
   $("[data-action='bulkWatched'] span").textContent = allWatched ? "Mark as unwatched" : "Mark as watched";
+  const allHidden = n > 0 && pickedItems().every((i) => i.hidden);
+  $("[data-action='bulkHidden'] span").textContent = allHidden ? "Show on Home" : "Hide from Home";
 }
 
 const pickedItems = () => state.items.filter((i) => state.picked.has(i.id));
@@ -640,6 +668,11 @@ const actions = {
     toast(item.watched ? "Marked as unwatched" : "Marked as watched");
   },
 
+  async toggleHidden(item) {
+    await api("/api/hidden", { id: item.id, hidden: !item.hidden });
+    toast(item.hidden ? "Shown on Home again" : "Hidden from Home");
+  },
+
   async collect(item) { await saveDialog([item]); },
 
   async uncollect(item) {
@@ -699,6 +732,14 @@ const actions = {
     toast(`Marked ${plural(items.length, "video")} as ${watched ? "watched" : "unwatched"}`);
   },
 
+  async bulkHidden() {
+    const items = pickedItems();
+    if (!items.length) return;
+    const hidden = !items.every((i) => i.hidden);
+    await api("/api/hidden", { ids: items.map((i) => i.id), hidden });
+    toast(`${hidden ? "Hid" : "Showed"} ${plural(items.length, "video")} ${hidden ? "from" : "on"} Home`);
+  },
+
   async bulkCollect() {
     const items = pickedItems();
     if (items.length) await saveDialog(items);
@@ -756,7 +797,7 @@ const actions = {
 };
 
 const GLOBAL_ACTIONS = new Set(["add", "addFolder", "selectMode", "exitSelect", "selectAll", "selectNone",
-  "bulkChannel", "bulkRemoveCover", "bulkDelete", "createCollection", "bulkCollect", "bulkUncollect", "bulkWatched"]);
+  "bulkChannel", "bulkRemoveCover", "bulkDelete", "createCollection", "bulkCollect", "bulkUncollect", "bulkWatched", "bulkHidden"]);
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -999,6 +1040,7 @@ function showCtx(item, x, y) {
   select(item.id);
   ctx.querySelector('[data-needs="cover"]').disabled = !item.cover;
   ctx.querySelector('[data-action="toggleWatched"]').textContent = item.watched ? "Mark as unwatched" : "Mark as watched";
+  ctx.querySelector('[data-action="toggleHidden"]').textContent = item.hidden ? "Show on Home" : "Hide from Home";
   ctx.hidden = false;
   const { width, height } = ctx.getBoundingClientRect();
   ctx.style.left = `${Math.min(x, innerWidth - width - 8)}px`;
@@ -1251,6 +1293,11 @@ $("#chips").addEventListener("click", (e) => {
   if (!chip) return;
   if (chip.id === "missingChip") {
     state.missingOnly = !state.missingOnly;
+    render();
+    return scrollTo({ top: 0 });
+  }
+  if (chip.id === "hiddenChip") {
+    state.hiddenOnly = !state.hiddenOnly;
     render();
     return scrollTo({ top: 0 });
   }

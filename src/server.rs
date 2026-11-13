@@ -403,7 +403,7 @@ fn collection_action(action: &str, body: &Obj) -> Resp {
     ok_state(&lib)
 }
 
-/// Actions on one video ("id"); remove-cover, channel, watched and delete also take several ("ids").
+/// Actions on one video ("id"); remove-cover, channel, watched, hidden and delete also take several ("ids").
 fn item_action(path: &str, body: &Obj) -> Resp {
     let wanted = if truthy(body.get("ids")) { strings(body.get("ids")) } else { vec![str_field(body, "id").to_string()] };
 
@@ -484,6 +484,18 @@ fn item_action(path: &str, body: &Obj) -> Resp {
             let watched = body.get("watched").map(|v| truthy(Some(v))).unwrap_or(true);
             for &i in &idxs {
                 lib.items[i].insert("watched".into(), json!(watched));
+            }
+            lib.save();
+        }
+        "/api/hidden" => {
+            // Hidden videos stay in the library and in their collections; only Home leaves them out.
+            let hidden = body.get("hidden").map(|v| truthy(Some(v))).unwrap_or(true);
+            for &i in &idxs {
+                if hidden {
+                    lib.items[i].insert("hidden".into(), json!(true));
+                } else {
+                    lib.items[i].remove("hidden");
+                }
             }
             lib.save();
         }
